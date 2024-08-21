@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head th:replace="~{/fragments/config :: config}">
+
+</head>
+<body>
+    <div>
+        <header th:replace="~{/fragments/header :: header}"></header>
+
+        <main layout:fragment="content"></main> <!-- layout:fragment="이름 자유롭게"-->
+        <!-- 각 페이지에서 main에 해당하는 부분만 layout:fragment="content"로 만들어주면 된다. -->
+
+        <footer th:replace="~{/fragments/footer :: footer}"></footer>
+    </div>
+</body>
+</html>

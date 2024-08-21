@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org/DTD Mapper 3.0//EN"
+        "http//www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bit.springboard.mapper.NoticeMapper">
+    <insert id="post"
+            parameterType="BoardDto">
+        <selectKey keyProperty="id" order="AFTER" resultType="int">
+            SELECT IFNULL(MAX(ID), 1) FROM NOTICE
+        </selectKey>
+        INSERT INTO NOTICE(
+            TITLE,
+            CONTENT,
+            WRITER_ID
+        ) VALUES (
+            <!-- 파라미터 타입 (boardDto 안에 있는) -->
+            #{title},
+            #{content},
+            (
+                SELECT M.ID
+                FROM MEMBER M
+                WHERE M.NICKNAME = #{nickname}
+            )
+        )
+    </insert>
+    <!-- findLast => findById 로 바꾸면서 추가 -->
+    <select id="findById"
+            parameterType="int"
+            resultType="BoardDto">
+        SELECT N.ID
+            , N.TITLE
+            , N.CONTENT
+            , N.WRITER_ID
+            , M.NICKNAME
+            , N.REGDATE
+            , N.MODDATE
+            , N.CNT
+            , 'notice' as type
+            FROM NOTICE N
+            JOIN MEMBER M
+            ON N.WRITER_ID = M.ID
+            WHERE N.ID = #{id}
+    </select>
+
+    <insert id="postFile"
+            parameterType="BoardFileDto">
+        INSERT INTO NOTICE_FILE (
+            BOARD_ID,
+            FILENAME,
+            FILEORIGINNAME,
+            FILEPATH,
+            FILETYPE
+        ) VALUES (
+            #{board_id},
+            #{filename},
+            #{fileoriginname},
+            #{filepath},
+            #{filetype}
+        )
+    </insert>
+
+    <insert id="postFiles"
+            parameterType="List">
+        INSERT INTO NOTICE_FILE (
+            BOARD_ID,
+            FILENAME,
+            FILEORIGINNAME,
+            FILEPATH,
+            FILETYPE
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.board_id},
+                #{item.filename},
+                #{item.fileoriginname},
+                #{item.filepath},
+                #{item.filetype}
+            )
+        </foreach>
+    </insert>
+
+    <select id="findAll"
+            parameterType="map"
+            resultType="BoardDto">
+        SELECT N.ID
+             , N.TITLE
+             , N.CONTENT
+             , N.WRITER_ID
+             , M.NICKNAME
+             , N.REGDATE
+             , N.MODDATE
+             , N.CNT
+             , 'notice' as type
+            FROM NOTICE N
+            JOIN MEMBER M
+              ON N.WRITER_ID = M.ID
+            WHERE 1=1
+        <if test="search.searchKeyword != null and search.searchKeyword != ''">
+            <if test="search.searchCondition == 'all'">
+                AND (
+                N.TITLE LIKE CONCAT('%', #{search.searchKeyword}, '%')
+                OR N.CONTENT LIKE CONCAT('%', ${search.searchKeyword}, '%')
+                or M.NICKNAME LIKE CONCAT ('%', #{search.searchKeyword}, '%')
+                )
+            </if>
+            <if test="search.searchCondition == 'title'">
+                AND N.TITLE LIKE CONCAT('%', #{search.searchKeyword}, '%')
+            </if>
+            <if test="search.searchCondition == 'content'">
+                AND N.CONTENT LIKE CONCAT('%', #{search.searchKeyword}, '%')
+            </if>
+            <if test="search.searchCondition == 'writer'">
+                AND M.NICKNAME LIKE CONCAT('%', #{search.searchKeyword}, '%')
+            </if>
+        </if>
+        LIMIT #{cri.amount} OFFSET #{cri.startNum}
+    </select>
+
+    <select id="findFilesById"
+            parameterType="int"
+            resultType="BoardFileDto">
+        SELECT ID
+            , BOARD_ID
+            , FILENAME
+            , FILEORIGINNAME
+            , FILEPATH
+            , FILETYPE
+            FROM NOTICE_FILE
+            WHERE BOARD_ID = #{id}
+    </select>
+
+    <update id="modify"
+            parameterType="BoardDto">
+        UPDATE NOTICE
+            SET
+            TITLE = #{title},
+            CONTENT = #{content},
+            MODDATE = #{moddate}
+            WHERE ID = #{id}
+    </update>
+
+    <update id="modifyFile"
+            parameterType="BoardFileDto">
+        UPDATE NOTICE_FILE
+            SET
+                FILENAME = #{filename},
+                FILEORIGINNAME = #{fileoriginname},
+                FILEPATH = #{filepath},
+                FILETYPE = #{filetype}
+            WHERE ID = #{id}
+            AND BOARD_ID = #{board_id}
+    </update>
+
+    <delete id="removeFile"
+            parameterType="BoardFileDto">
+        DELETE FROM NOTICE_FILE
+            WHERE ID = #{id}
+            AND BOARD_ID = #{board_id}
+    </delete>
+
+    <delete id="removeFiles"
+            parameterType="int">
+        DELETE FROM NOTICE_FILE
+            WHERE BOARD_ID = #{id}
+    </delete>
+
+    <delete id="remove"
+            parameterType="int">
+        DELETE FROM NOTICE
+            WHERE ID = #{id}
+    </delete>
+
+    <select id="findTotalCnt"
+            parameterType="map"
+            resultType="int">
+        SELECT COUNT(*)
+            FROM NOTICE N
+            JOIN MEMBER M
+            ON N.WRITER_ID = M.ID
+            WHERE 1=1
+            <if test="searchKeyword != null and searchKeyword != ''">
+                <if test="searchCondition == 'all'">
+                    AND (
+                    N.TITLE LIKE CONCAT('%', #{searchKeyword}, '%')
+                    OR N.CONTENT LIKE CONCAT('%', #{searchKeyword}, '%')
+                    OR M.NICKNAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                    )
+                </if>
+                <if test="searchCondition == 'title'">
+                    AND N.TITLE LIKE CONCAT('%', #{searchKeyword}, '%')
+                </if>
+                <if test="searchCondition == 'content'">
+                    AND N.CONTENT LIKE CONCAT('%', #{searchKeyword}, '%')
+                </if>
+                <if test="searchCondition == 'writer'">
+                    AND M.NICKNAME LIKE CONCAT('%', #{searchKeyword}, '%')
+                </if>
+            </if>
+    </select>
+
+    <update id="updateBoardCnt"
+            parameterType="int">
+        UPDATE NOTICE
+            SET
+            CNT = CNT + 1
+            WHERE ID = #{id}
+    </update>
+</mapper>
